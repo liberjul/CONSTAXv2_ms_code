@@ -5,7 +5,7 @@ library(patchwork)
 library(maditr)
 library(forcats)
 
-setwd("C:/Users/julia/OneDrive - Michigan State University/Documents/MSU/Bonito Lab/CONSTAX_fixes/CONSTAXv2_ms_code/data/classification/")
+setwd("C:/Users/julia/OneDrive - Michigan State University/Documents/MSU/Bonito Lab/CONSTAX_fixes/CONSTAXv2_ms_code/scripts/classification/")
 
 sil_reg <- read.csv("../../data/classification/silva/part_cv_metrics_silva_reg.csv")
 sil_reg_c <- read.csv("../../data/classification/silva/part_cv_metrics_silva_reg_conservative.csv")
@@ -89,7 +89,7 @@ p_sil / p_uni -> comb_plot
 ### Speed tests
 # Training speed, 1 thread
 
-n_vary_train <- read.csv("../speed_tests/speed_training_t1_nvary.csv")
+n_vary_train <- read.csv("../../data/speed_tests/speed_training_t1_nvary.csv")
 
 n_vary_train <- n_vary_train %>%
   filter(step == "train") %>%
@@ -156,14 +156,14 @@ comb_plot
 
 ggsave("../../figures/region_classification_part_v_sil.png", p_sil + labs(x="Classifier"), width = 7, height = 4, units = "in", dpi = 400)
 ggsave("../../figures/region_classification_part_v_uni.png", p_uni, width = 7, height = 4, units = "in", dpi = 400)
-ggsave("../../figures/region_classification_part_cv.png", comb_plot, width = 8, height = 12, units = "in", dpi = 400)
+ggsave("../../figures/speed_and_region_classification_part_cv.png", comb_plot, width = 8.5, height = 12, units = "in", dpi = 400)
 
 comb_reg_df <- rbind(uni_reg_long, sil_reg_long)
 
 comb_reg_df %>%
   group_by(database, partition_level, region, classifier, Metric) %>%
   summarise(mean=mean(value), sd = sd(value)) %>%
-  mutate(tbl_entry = paste(round(mean*100, 1), round(sd*100, 1), sep = "ï¿½")) ->
+  mutate(tbl_entry = paste(round(mean*100, 1), round(sd*100, 1), sep = "±")) ->
   res_tbl
 res_tbl
 
