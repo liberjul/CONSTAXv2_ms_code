@@ -10,6 +10,7 @@ setwd("C:/Users/julia/OneDrive - Michigan State University/Documents/MSU/Bonito 
 sil_reg <- read.csv("../../data/classification/silva/part_cv_metrics_silva_reg.csv")
 sil_reg_c <- read.csv("../../data/classification/silva/part_cv_metrics_silva_reg_conservative.csv")
 sil_mothur <- read.csv("../../data/classification/silva/part_cv_metrics_silva_mothur.csv")
+sil_qiime <- read.csv("../../data/classification/silva/part_cv_metrics_silva_qiime.csv")
 
 uni_reg_utax <- read.csv("../../data/classification/unite/part_cv_metrics_unite_reg_utax.csv")
 uni_reg_utax_c <- read.csv("../../data/classification/unite/part_cv_metrics_unite_reg_utax_conservative.csv")
@@ -21,15 +22,16 @@ uni_qiime <- read.csv("../../data/classification/unite/part_cv_metrics_unite_qii
 
 levels(sil_reg$classifier)[levels(sil_reg$classifier)=="Consensus"] <- "CB"
 levels(sil_reg_c$classifier)[levels(sil_reg_c$classifier)=="Consensus"] <- "CBC"
+levels(sil_mothur$classifier)[levels(sil_mothur$classifier)=="mothur-knn"] <- "mothur-knn=3"
 
 levels(uni_reg_utax$classifier)[levels(uni_reg_utax$classifier)=="Consensus"] <- "CU"
 levels(uni_reg_blast$classifier)[levels(uni_reg_blast$classifier)=="Consensus"] <- "CB"
 levels(uni_reg_utax_c$classifier)[levels(uni_reg_utax_c$classifier)=="Consensus"] <- "CUC"
 levels(uni_reg_blast_c$classifier)[levels(uni_reg_blast_c$classifier)=="Consensus"] <- "CBC"
+levels(uni_mothur$classifier)[levels(uni_mothur$classifier)=="mothur-knn"] <- "mothur-knn=3"
 
-
-colnames(uni_mothur)
-colnames(uni_reg_blast)
+# colnames(uni_mothur)
+# colnames(uni_reg_blast)
 
 # Extract unique classifiers not in the uni_reg_blast dataframe
 uni_reg_utax %>%
@@ -47,7 +49,7 @@ comb_unite_df %>% # Extract metrics
              values_to = "value") -> uni_reg_long
 sil_reg_c %>% # Only difference here is the Consensus BLast classifier
   filter(classifier == "CBC") %>%
-  rbind(., sil_reg, sil_mothur) -> comb_sil_df
+  rbind(., sil_reg, sil_mothur, sil_qiime) -> comb_sil_df
 
 comb_sil_df %>% # Extract metrics
   pivot_longer(cols = sensitivity:EPQ,
@@ -66,7 +68,7 @@ sil_reg_long %>%
              labeller = labeller(Metric=metric.labs, partition_level=lev.labs)) +
   theme(axis.text.x.bottom = element_text(angle=45, vjust=1, hjust=1),
         plot.title = element_text(hjust = 0.5)) +
-  scale_x_discrete(limits=c("BLAST","RDP","SINTAX", "CB", "CBC", "mothur-wang", "mothur-knn")) +
+  scale_x_discrete(limits=c("BLAST","RDP","SINTAX", "mothur-wang", "mothur-knn=3", "qiime2-Naive-Bayes", "CB", "CBC")) +
   scale_color_viridis_d(end = 0.8) +
   labs(x=NULL, y="Metric Value", color = "Region", title = "Bacteria") -> p_sil
 p_sil
@@ -79,7 +81,7 @@ uni_reg_long %>%
              labeller = labeller(Metric=metric.labs, partition_level=lev.labs)) +
   theme(axis.text.x.bottom = element_text(angle=45, vjust=1, hjust=1),
         plot.title = element_text(hjust = 0.5)) +
-  scale_x_discrete(limits=c("BLAST","RDP","SINTAX", "UTAX", "CB", "CBC", "CU", "CUC", "mothur-wang", "mothur-knn", "qiime2-Naive-Bayes")) +
+  scale_x_discrete(limits=c("BLAST","RDP","SINTAX", "UTAX", "mothur-wang", "mothur-knn=3", "qiime2-Naive-Bayes", "CB", "CBC", "CU", "CUC")) +
   scale_color_viridis_d(end = 0.8) +
   labs(x="Classifier", y="Metric Value", color = "Region", title = "Fungi") -> p_uni
 p_uni
@@ -166,11 +168,11 @@ comb_reg_df %>%
   mutate(tbl_entry = paste(round(mean*100, 1), round(sd*100, 1), sep = "±")) ->
   res_tbl
 
-res_tbl$classifier <- fct_relevel(res_tbl$classifier, c("BLAST", "RDP", "SINTAX", "UTAX", "CB", "CBC", "CU", "CUC"))
+res_tbl$classifier <- fct_relevel(res_tbl$classifier, c("BLAST", "RDP", "SINTAX", "UTAX", "mothur-wang", "mothur-knn=3", "qiime2-Naive-Bayes", "CB", "CBC", "CU", "CUC"))
   
 res_tbl %>% dcast(partition_level + classifier ~ database + region + Metric,
                   value.var = "tbl_entry") -> out_tbl
-out_tbl$classifier <- fct_relevel(out_tbl$classifier, c("BLAST", "RDP", "SINTAX", "UTAX", "CB", "CBC", "CU", "CUC"))
+out_tbl$classifier <- fct_relevel(out_tbl$classifier, c("BLAST", "RDP", "SINTAX", "UTAX", "mothur-wang", "mothur-knn=3", "qiime2-Naive-Bayes", "CB", "CBC", "CU", "CUC"))
 out_tbl %>%
   arrange(partition_level, classifier) -> out_tbl
 out_tbl

@@ -155,6 +155,82 @@ done
 mothur mothur_class_seqs_silva_wang_knn_reg.txt
 python tax_to_df_mothur_silva.py -d $SILVA_DATA
 python tax_df_to_metrics_mothur_silva.py -d $SILVA_DATA
+# Run qiime classification for SILVA
+for i in {0..4}
+do
+  for r in gen fam
+  do
+    echo "Rank $gen iter $i"
+    python to_qiime_format_silva.py -i $SILVA_DATA/silva_partition_"$i"_ref_"$r".fasta \
+    --otax $SILVA_DATA/sil_parts_"$i"_"$r"_qiime.tax --oalign $SILVA_DATA/sil_parts_"$i"_"$r"_qiime.fasta
+  done
+done
+for i in {0..4}
+do
+  for r in gen fam
+  do
+    qiime tools import \
+    --type 'FeatureData[Sequence]' \
+    --input-path $SILVA_DATA/sil_parts_"$i"_"$r"_qiime.fasta \
+    --output-path $SILVA_DATA/sil_parts_"$i"_"$r"_qiime.fasta.qza
+
+    qiime tools import \
+    --type 'FeatureData[Taxonomy]' \
+    --input-format HeaderlessTSVTaxonomyFormat \
+    --input-path $SILVA_DATA/sil_parts_"$i"_"$r"_qiime.tax \
+    --output-path $SILVA_DATA/sil_parts_"$i"_"$r"_qiime.tax.qza
+  done
+done
+echo "Sequence and taxonomy artifacts made"
+for i in {0..4}
+do
+  for r in gen fam
+  do
+    qiime feature-classifier fit-classifier-naive-bayes \
+      --i-reference-reads $SILVA_DATA/sil_parts_"$i"_"$r"_qiime.fasta.qza \
+      --i-reference-taxonomy $SILVA_DATA/sil_parts_"$i"_"$r"_qiime.tax.qza \
+      --o-classifier classifier.qza
+
+    qiime tools import \
+      --type 'FeatureData[Sequence]' \
+      --input-path $SILVA_DATA/sil_parts_"$i"_query_sub_1k_"$r"_qiime.fasta \
+      --output-path $SILVA_DATA/sil_parts_"$i"_query_sub_1k_"$r"_qiime.qza
+
+    qiime feature-classifier classify-sklearn \
+      --i-classifier $SILVA_DATA/classifier.qza \
+      --i-reads $SILVA_DATA/sil_parts_"$i"_query_sub_1k_"$r"_qiime.qza \
+      --o-classification $SILVA_DATA/sil_parts_"$i"_query_sub_1k_"$r"_qiime_taxonomy.qza
+
+    qiime tools export \
+      --input-path $SILVA_DATA/sil_parts_"$i"_query_sub_1k_"$r"_qiime_taxonomy.qza \
+      --output-path $SILVA_DATA/sil_parts_"$i"_query_sub_1k_"$r"_qiime_taxonomy
+
+    cp $SILVA_DATA/sil_parts_"$i"_query_sub_1k_"$r"_qiime_taxonomy/taxonomy.tsv $SILVA_DATA/sil_parts_"$i"_query_sub_1k_"$r"_qiime_taxonomy.tsv
+    rm -r $SILVA_DATA/sil_parts_"$i"_query_sub_1k_"$r"_qiime_taxonomy
+    for region in "_v3-4" "_v4"
+    do
+      qiime tools import \
+        --type 'FeatureData[Sequence]' \
+        --input-path $SILVA_DATA/sil_parts_"$i"_query_"$r""$region"_qiime.fasta \
+        --output-path $SILVA_DATA/sil_parts_"$i"_query_"$r""$region"_qiime.qza
+
+      qiime feature-classifier classify-sklearn \
+        --i-classifier classifier.qza \
+        --i-reads $SILVA_DATA/sil_parts_"$i"_query_"$r""$region"_qiime.qza \
+        --o-classification $SILVA_DATA/sil_parts_"$i"_query_"$r""$region"_qiime_taxonomy.qza
+
+      qiime tools export \
+        --input-path $SILVA_DATA/sil_parts_"$i"_query_"$r""$region"_qiime_taxonomy.qza \
+        --output-path $SILVA_DATA/sil_parts_"$i"_query_"$r""$region"_qiime_taxonomy
+
+      cp $SILVA_DATA/sil_parts_"$i"_query_"$r""$region"_qiime_taxonomy/taxonomy.tsv $SILVA_DATA/sil_parts_"$i"_query_"$r""$region"_qiime_taxonomy.tsv
+      rm -r $SILVA_DATA/sil_parts_"$i"_query_"$r""$region"_qiime_taxonomy
+
+    done
+  done
+done
+python tax_to_df_qiime_silva.py -d $SILVA_DATA
+python tax_df_to_metrics_qiime_silva.py -d $SILVA_DATA
 
 # Classification counts
 $CONSTAXPATH/constax.sh -c 0.8 -b -t \
@@ -307,7 +383,71 @@ done
 mothur mothur_class_seqs_unite_wang_knn_its.txt
 python tax_to_df_mothur_unite.py -d $UNITE_DATA
 python tax_df_to_metrics_mothur_unite.py -d $UNITE_DATA
+# Download qiime release
+curl https://files.plutof.ut.ee/public/orig/98/AE/98AE96C6593FC9C52D1C46B96C2D9064291F4DBA625EF189FEC1CCAFCF4A1691.gz > $UNITE_DATA/sh_qiime_release_04.02.2020.tar.gz
+tar -xzvf $UNITE_DATA/sh_qiime_release_04.02.2020.tar.gz
+# Create partition files with qiime formatting
+for i in {0..4}
+do
+  for r in gen fam
+  do
+    python to_qiime_format_unite.py -i $UNITE_DATA/unite_partition_"$i"_ref_"$r".fasta \
+      --itax $UNITE_DATA/sh_qiime_release_04.02.2020/sh_taxonomy_qiime_ver8_99_04.02.2020.txt --otax $UNITE_DATA/uni_parts_"$i"_"$r"_qiime.tax --ialign $UNITE_DATA/sh_qiime_release_04.02.2020/sh_refs_qiime_ver8_99_04.02.2020.fasta --oalign $UNITE_DATA/uni_parts_"$i"_"$r"_qiime.fasta
+  done
+done
+python format_query_fastas_unite.py -d $UNITE_DATA
+#Classify with qiime naive bayes classifier
+for i in {0..4}
+do
+  for r in gen fam
+  do
+    qiime tools import \
+    --type 'FeatureData[Sequence]' \
+    --input-path $UNITE_DATA/uni_parts_"$i"_"$r"_qiime.fasta \
+    --output-path $UNITE_DATA/uni_parts_"$i"_"$r"_qiime.fasta.qza
 
+    qiime tools import \
+    --type 'FeatureData[Taxonomy]' \
+    --input-format HeaderlessTSVTaxonomyFormat \
+    --input-path $UNITE_DATA/uni_parts_"$i"_"$r"_qiime.tax \
+    --output-path $UNITE_DATA/uni_parts_"$i"_"$r"_qiime.tax.qza
+  done
+done
+echo "Sequence and taxonomy artifacts made"
+for i in {0..4}
+do
+  for r in gen fam
+  do
+    qiime feature-classifier fit-classifier-naive-bayes \
+      --i-reference-reads $UNITE_DATA/uni_parts_"$i"_"$r"_qiime.fasta.qza \
+      --i-reference-taxonomy $UNITE_DATA/uni_parts_"$i"_"$r"_qiime.tax.qza \
+      --o-classifier $UNITE_DATA/classifier.qza
+    for region in "" "_itsx.ITS1" "_itsx.ITS2"
+    do
+
+      qiime tools import \
+        --type 'FeatureData[Sequence]' \
+        --input-path $UNITE_DATA/unite_partition_"$i"_query_"$r""$region"_qm_fmt.fasta \
+        --output-path $UNITE_DATA/uni_parts_"$i"_"$r"_qiime_query"$region".qza
+
+      qiime feature-classifier classify-sklearn \
+        --i-classifier $UNITE_DATA/classifier.qza \
+        --i-reads $UNITE_DATA/uni_parts_"$i"_"$r"_qiime_query"$region".qza \
+        --o-classification $UNITE_DATA/uni_parts_"$i"_"$r"_qiime_query"$region"_taxonomy.qza
+
+      qiime tools export \
+        --input-path $UNITE_DATA/uni_parts_"$i"_"$r"_qiime_query"$region"_taxonomy.qza \
+        --output-path $UNITE_DATA/uni_parts_"$i"_"$r"_qiime_query"$region"_taxonomy
+
+      cp $UNITE_DATA/uni_parts_"$i"_"$r"_qiime_query"$region"_taxonomy/taxonomy.tsv $UNITE_DATA/uni_parts_"$i"_"$r"_qiime_query"$region"_taxonomy.tsv
+      rm -r $UNITE_DATA/uni_parts_"$i"_"$r"_qiime_query"$region"_taxonomy
+
+    done
+  done
+done
+# Calculate metrics from qiime classifications
+python tax_to_df_qiime_unite.py -d $UNITE_DATA
+python tax_df_to_metrics_qiime_unite.py -d $UNITE_DATA
 # Classification counts
 $CONSTAXPATH/constax.sh -c 0.8 -b -t \
   -i  $UNITE_DATA/otus_ITS.fasta \
