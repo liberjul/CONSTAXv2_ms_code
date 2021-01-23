@@ -1,9 +1,9 @@
 library(ggplot2)
-library(ggpubr)
+# library(ggpubr)
 library(tidyverse)
 library(patchwork)
 library(maditr)
-library(forcats)
+# library(forcats)
 
 setwd("C:/Users/julia/OneDrive - Michigan State University/Documents/MSU/Bonito Lab/CONSTAX_fixes/CONSTAXv2_ms_code/scripts/classification/")
 
@@ -88,6 +88,37 @@ p_uni
 ggsave("../../figures/region_classification_part_cv_unite.png", p_uni, width = 10, height = 8, units = "in", dpi = 400)
 
 p_sil / p_uni -> comb_plot
+### Let's try some stats
+rbind(uni_reg_long,
+      sil_reg_long) -> comb_reg_long
+write.csv(comb_reg_long, "../../data/classification/combined_region_performance.csv")
+
+uni_reg_long %>%
+  filter(Metric == "EPQ") -> uni_EPQ
+uni_reg_long %>%
+  filter(Metric == "OC") -> uni_OC
+uni_reg_long %>%
+  filter(Metric == "MC") -> uni_MC
+uni_reg_long %>%
+  filter(Metric == "sensitivity") -> uni_sens
+bartlett.test(value ~ classifier, uni_EPQ)
+bartlett.test(value ~ classifier, uni_OC)
+bartlett.test(value ~ classifier, uni_MC)
+bartlett.test(value ~ classifier, uni_sens)
+
+sil_reg_long %>%
+  filter(Metric == "EPQ") -> sil_EPQ
+sil_reg_long %>%
+  filter(Metric == "OC") -> sil_OC
+sil_reg_long %>%
+  filter(Metric == "MC") -> sil_MC
+sil_reg_long %>%
+  filter(Metric == "sensitivity") -> sil_sens
+bartlett.test(value ~ classifier, sil_EPQ)
+bartlett.test(value ~ classifier, sil_OC)
+bartlett.test(value ~ classifier, sil_MC)
+bartlett.test(value ~ classifier, sil_sens)
+
 
 ### Speed tests
 # Training speed, 1 thread
@@ -167,7 +198,7 @@ comb_reg_df %>%
   summarise(mean=mean(value), sd = sd(value)) %>%
   mutate(tbl_entry = paste(round(mean*100, 1), round(sd*100, 1), sep = "±")) ->
   res_tbl
-
+res_tbl
 res_tbl$classifier <- fct_relevel(res_tbl$classifier, c("BLAST", "RDP", "SINTAX", "UTAX", "mothur-wang", "mothur-knn=3", "qiime2-Naive-Bayes", "CB", "CBC", "CU", "CUC"))
   
 res_tbl %>% dcast(partition_level + classifier ~ database + region + Metric,
