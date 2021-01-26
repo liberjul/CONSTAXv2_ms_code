@@ -234,7 +234,7 @@ python tax_df_to_metrics_qiime_silva.py -d $SILVA_DATA
 
 # Classification counts
 $CONSTAXPATH/constax.sh -c 0.8 -b -t \
-  -i  $SILVA_DATA/otus_16s.fasta \
+  -i  $SILVA_DATA/16S_PE_KBS_500_otu.fasta \
   -n 16 \
   -d $SILVA_DATA/SILVA_Bacteria_tf/SILVA_138_SSURef_tax_silva_bact.fasta \
   -f $SILVA_DATA/SILVA_Bacteria_tf \
@@ -450,7 +450,7 @@ python tax_to_df_qiime_unite.py -d $UNITE_DATA
 python tax_df_to_metrics_qiime_unite.py -d $UNITE_DATA
 # Classification counts
 $CONSTAXPATH/constax.sh -c 0.8 -b -t \
-  -i  $UNITE_DATA/otus_ITS.fasta \
+  -i  $UNITE_DATA/ITS1_R1_KBS_500_otu.fasta \
   -n 16 \
   -d $UNITE_DATA/UNITE_Fungi_tf/sh_general_release_dynamic_04.02.2020.fasta \
   -f $UNITE_DATA/UNITE_Fungi_tf \

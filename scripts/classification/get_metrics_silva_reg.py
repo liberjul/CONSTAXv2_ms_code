@@ -57,8 +57,11 @@ def score_df(pred_df, known_df, level_known):
     mc = misclass(flat_pok_tax, flat_k_tax)
     oc = overclass(flat_pou_tax)
     epq = errors_per_query(flat_pok_tax, flat_pou_tax, flat_k_tax)
+    n_known = len(flat_k_tax)
+    n_novel = len(flat_pou_tax)
+    n = n_known + n_novel
 
-    return [sens, mc, oc, epq]
+    return [sens, mc, oc, epq, n_known, n_novel, n]
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-d", "--dir", type=str, help="data directory")
@@ -66,7 +69,7 @@ args = parser.parse_args()
 
 level_dict = {"fam" : 5, "gen" : 6}
 region_dict = {"Full" : "", "V4" : "_v4", "V3-4" : "_v3-4"}
-buffer = "database,partition_level,region,k_iteration,classifier,sensitivity,MC,OC,EPQ\n"
+buffer = "database,partition_level,region,k_iteration,classifier,sensitivity,MC,OC,EPQ,N_known,N_novel,N\n"
 for i in ["fam", "gen"]:
     for j in range(5):
         for d in ["silva"]: #, "silva"]:
@@ -117,7 +120,7 @@ for i in ["fam", "gen"]:
                     buffer = F"{buffer}{d},{i},{region},{j},{classifier},{','.join(metrics)}\n"
 with open(F"{args.dir}/part_cv_metrics_silva_reg_conservative.csv", "w") as ofile:
     ofile.write(buffer)
-buffer = "database,partition_level,region,k_iteration,classifier,sensitivity,MC,OC,EPQ\n"
+buffer = "database,partition_level,region,k_iteration,classifier,sensitivity,MC,OC,EPQ,N_known,N_novel,N\n"
 for i in ["fam", "gen"]:
     for j in range(5):
         for d in ["silva"]: #, "silva"]:

@@ -1,9 +1,9 @@
 import xlsxwriter
 import pandas as pd
 
-db_line = ",," + ",".join(["UNITE"]*12) + "," + ",".join(["SILVA"]*12) + "\n"
-reg_line = ",," + ",".join(["Full"]*4) + "," + ",".join(["ITS1"]*4) + "," + ",".join(["ITS2"]*4) + "," + ",".join(["Full"]*4) + "," + ",".join(["V3-4"]*4) + "," + ",".join(["V4"]*4) + "\n"
-met_line = "Partition Level,Classifier," + ",".join(["EPQ", "MC", "OC", "sensitivity"]*6) + "\n"
+db_line = ",," + ",".join(["UNITE"]*9) + "," + ",".join(["SILVA"]*9) + "\n"
+reg_line = ",," + ",".join(["Full"]*3) + "," + ",".join(["ITS1"]*3) + "," + ",".join(["ITS2"]*3) + "," + ",".join(["Full"]*3) + "," + ",".join(["V3-4"]*3) + "," + ",".join(["V4"]*3) + "\n"
+met_line = "Partition Level,Classifier," + ",".join(["EPQ", "MC", "OC"]*6) + "\n"
 
 with open("../../tables/region_partition_summary.csv", "r") as ifile, open("../../tables/region_partition_summary_formatted.csv", "w") as ofile:
     ofile.write(db_line)
@@ -60,18 +60,19 @@ with open("../../tables/region_partition_summary_formatted.csv", "r") as ifile:
         col = 0
         line = ifile.readline()
 
-worksheet.merge_range('C1:N1', 'UNITE', merge_format)
-worksheet.merge_range('O1:Z1', 'SILVA', merge_format)
-worksheet.merge_range('C2:F2', 'Full', merge_format)
-worksheet.merge_range('G2:J2', 'ITS1', merge_format)
-worksheet.merge_range('K2:N2', 'ITS2', merge_format)
-worksheet.merge_range('O2:R2', 'Full', merge_format)
-worksheet.merge_range('S2:V2', 'V3-4', merge_format)
-worksheet.merge_range('W2:Z2', 'V4', merge_format)
+worksheet.merge_range('C1:K1', 'UNITE', merge_format)
+worksheet.merge_range('L1:T1', 'SILVA', merge_format)
+worksheet.merge_range('C2:E2', 'Full', merge_format)
+worksheet.merge_range('F2:H2', 'ITS1', merge_format)
+worksheet.merge_range('I2:K2', 'ITS2', merge_format)
+worksheet.merge_range('L2:N2', 'Full', merge_format)
+worksheet.merge_range('O2:Q2', 'V3-4', merge_format)
+worksheet.merge_range('R2:T2', 'V4', merge_format)
 
 worksheet.merge_range('A4:A14', 'Family', merge_format)
 worksheet.merge_range('A15:A25', 'Genus', merge_format)
 worksheet.set_column('A:A', 12)
 worksheet.set_column('B:B', 17)
+worksheet.set_column('C:T', 12)
 
 workbook.close()

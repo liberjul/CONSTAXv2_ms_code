@@ -43,6 +43,39 @@ uni_reg_blast_c %>%
   rbind(., uru_fil, uruc_fil, uni_reg_blast, uni_mothur, uni_qiime) -> comb_unite_df
 
 head(comb_unite_df)
+comb_unite_df %>%
+  mutate(sens_success = round(sensitivity * N_known),
+         sens_fail = round((1-sensitivity) * N_known),
+         MC_success = round(MC * N_known),
+         MC_fail = round((1-MC) * N_known),
+         OC_success = round(OC * N_novel),
+         OC_fail = round((1-OC) * N_novel),
+         EPQ_success = round(EPQ * N),
+         EPQ_fail = round((1-EPQ) * N)) -> comb_unite_binom
+comb_unite_binom %>%
+  select(-contains("success")) %>%
+  pivot_longer(cols = contains("fail"),
+               names_to = "Metric",
+               values_to = "Failures") %>%
+  mutate(Metric = unlist(strsplit(Metric, "_"))[[1]]) -> uni_fail_df 
+comb_unite_binom %>%
+  select(-contains("fail"))#%>%
+  pivot_longer(cols = contains("success"),
+               names_to = "Metric",
+               values_to = "Successes") %>%
+  mutate(Metric = unlist(strsplit(Metric, "_"))[[1]]) -> uni_success_df
+uni_fail_df %>%
+  select(-c(sensitivity:EPQ)) %>%
+  mutate(Successes = uni_success_df$Successes)
+
+comb_unite_binom
+  # left_join(uni_success_df, by="database")
+pivot_longer(cols = contains("success"),
+               names_to = "Metric",
+               values_to = "Successes") %>%
+  pivot_longer(cols = contains("fail"),
+               names_to = "Metric",
+               values_to = "Failures")
 comb_unite_df %>% # Extract metrics
   pivot_longer(cols = sensitivity:EPQ,
              names_to = "Metric",
@@ -94,17 +127,27 @@ rbind(uni_reg_long,
 write.csv(comb_reg_long, "../../data/classification/combined_region_performance.csv")
 
 uni_reg_long %>%
-  filter(Metric == "EPQ") -> uni_EPQ
+  filter(Metric == "EPQ",
+         partition_level == "gen") -> uni_gen_EPQ
+uni_reg_long %>%
+  filter(Metric == "EPQ",
+         partition_level == "fam") -> uni_fam_EPQ
 uni_reg_long %>%
   filter(Metric == "OC") -> uni_OC
 uni_reg_long %>%
   filter(Metric == "MC") -> uni_MC
 uni_reg_long %>%
   filter(Metric == "sensitivity") -> uni_sens
-bartlett.test(value ~ classifier, uni_EPQ)
+bartlett.test(value ~ classifier, uni_gen_EPQ)
+bartlett.test(value ~ classifier, uni_fam_EPQ)
+
+
+
 bartlett.test(value ~ classifier, uni_OC)
 bartlett.test(value ~ classifier, uni_MC)
 bartlett.test(value ~ classifier, uni_sens)
+
+
 
 sil_reg_long %>%
   filter(Metric == "EPQ") -> sil_EPQ

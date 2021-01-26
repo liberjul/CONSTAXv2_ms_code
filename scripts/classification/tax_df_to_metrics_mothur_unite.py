@@ -55,15 +55,18 @@ def score_df(pred_df, known_df, level_known):
     mc = misclass(flat_pok_tax, flat_k_tax)
     oc = overclass(flat_pou_tax)
     epq = errors_per_query(flat_pok_tax, flat_pou_tax, flat_k_tax)
+    n_known = len(flat_k_tax)
+    n_novel = len(flat_pou_tax)
+    n = n_known + n_novel
 
-    return [sens, mc, oc, epq]
+    return [sens, mc, oc, epq, n_known, n_novel, n]
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-d", "--dir", type=str, help="data directory")
 args = parser.parse_args()
 
 level_dict = {"fam" : 5, "gen" : 6}
-buffer = "database,partition_level,region,k_iteration,classifier,sensitivity,MC,OC,EPQ\n"
+buffer = "database,partition_level,region,k_iteration,classifier,sensitivity,MC,OC,EPQ,N_known,N_novel,N\n"
 region_dict = {"Full" : ["", ""], "ITS1" : ["_its1", "_itsx.ITS1"], "ITS2" : ["_its2", "_itsx.ITS2"]}
 for k in range(5):
     for r in ["gen", "fam"]:
