@@ -3,6 +3,9 @@ library(ggplot2)
 library(tidyverse)
 library(patchwork)
 library(maditr)
+library(lme4)
+library(emmeans)
+library(multcomp)
 # library(forcats)
 
 setwd("C:/Users/julia/OneDrive - Michigan State University/Documents/MSU/Bonito Lab/CONSTAX_fixes/CONSTAXv2_ms_code/scripts/classification/")
@@ -42,49 +45,15 @@ uni_reg_blast_c %>%
   filter(classifier == "CBC") %>%
   rbind(., uru_fil, uruc_fil, uni_reg_blast, uni_mothur, uni_qiime) -> comb_unite_df
 
-head(comb_unite_df)
-comb_unite_df %>%
-  mutate(sens_success = round(sensitivity * N_known),
-         sens_fail = round((1-sensitivity) * N_known),
-         MC_success = round(MC * N_known),
-         MC_fail = round((1-MC) * N_known),
-         OC_success = round(OC * N_novel),
-         OC_fail = round((1-OC) * N_novel),
-         EPQ_success = round(EPQ * N),
-         EPQ_fail = round((1-EPQ) * N)) -> comb_unite_binom
-comb_unite_binom %>%
-  select(-contains("success")) %>%
-  pivot_longer(cols = contains("fail"),
-               names_to = "Metric",
-               values_to = "Failures") %>%
-  mutate(Metric = unlist(strsplit(Metric, "_"))[[1]]) -> uni_fail_df 
-comb_unite_binom %>%
-  select(-contains("fail"))#%>%
-  pivot_longer(cols = contains("success"),
-               names_to = "Metric",
-               values_to = "Successes") %>%
-  mutate(Metric = unlist(strsplit(Metric, "_"))[[1]]) -> uni_success_df
-uni_fail_df %>%
-  select(-c(sensitivity:EPQ)) %>%
-  mutate(Successes = uni_success_df$Successes)
-
-comb_unite_binom
-  # left_join(uni_success_df, by="database")
-pivot_longer(cols = contains("success"),
-               names_to = "Metric",
-               values_to = "Successes") %>%
-  pivot_longer(cols = contains("fail"),
-               names_to = "Metric",
-               values_to = "Failures")
 comb_unite_df %>% # Extract metrics
   pivot_longer(cols = sensitivity:EPQ,
              names_to = "Metric",
              values_to = "value") -> uni_reg_long
-sil_reg_c %>% # Only difference here is the Consensus BLast classifier
+sil_reg_c %>% # Only difference here is the Consensus Blast Classifier
   filter(classifier == "CBC") %>%
-  rbind(., sil_reg, sil_mothur, sil_qiime) -> comb_sil_df
+  rbind(., sil_reg, sil_mothur, sil_qiime) -> comb_silva_df
 
-comb_sil_df %>% # Extract metrics
+comb_silva_df %>% # Extract metrics
   pivot_longer(cols = sensitivity:EPQ,
                names_to = "Metric",
                values_to = "value") -> sil_reg_long
@@ -95,6 +64,7 @@ lev.labs <- c("Family", "Genus")
 names(lev.labs) <- c("fam", "gen")
 
 sil_reg_long %>%
+  filter(Metric != "sensitivity") %>%
   ggplot(aes(x=classifier, y=value, color=region)) +
   geom_point(position = position_dodge(width=0.6), alpha = 0.5) +
   facet_grid(partition_level~Metric,
@@ -108,6 +78,7 @@ p_sil
 ggsave("../../figures/region_classification_part_cv_silva.png", p_sil, width = 10, height = 8, units = "in", dpi = 400)
 
 uni_reg_long %>%
+  filter(Metric != "sensitivity") %>%
   ggplot(aes(x=classifier, y=value, color=region)) +
   geom_point(position = position_dodge(width=0.6), alpha = 0.5) +
   facet_grid(partition_level~Metric,
@@ -122,47 +93,157 @@ ggsave("../../figures/region_classification_part_cv_unite.png", p_uni, width = 1
 
 p_sil / p_uni -> comb_plot
 ### Let's try some stats
-rbind(uni_reg_long,
-      sil_reg_long) -> comb_reg_long
-write.csv(comb_reg_long, "../../data/classification/combined_region_performance.csv")
 
-uni_reg_long %>%
-  filter(Metric == "EPQ",
-         partition_level == "gen") -> uni_gen_EPQ
-uni_reg_long %>%
-  filter(Metric == "EPQ",
-         partition_level == "fam") -> uni_fam_EPQ
-uni_reg_long %>%
-  filter(Metric == "OC") -> uni_OC
-uni_reg_long %>%
-  filter(Metric == "MC") -> uni_MC
-uni_reg_long %>%
-  filter(Metric == "sensitivity") -> uni_sens
-bartlett.test(value ~ classifier, uni_gen_EPQ)
-bartlett.test(value ~ classifier, uni_fam_EPQ)
+head(comb_unite_df)
+comb_unite_df %>%
+  mutate(sens_success = round(sensitivity * N_known),
+         sens_fail = round((1-sensitivity) * N_known),
+         MC_success = round(MC * N_known),
+         MC_fail = round((1-MC) * N_known),
+         OC_success = round(OC * N_novel),
+         OC_fail = round((1-OC) * N_novel),
+         EPQ_success = round(EPQ * N),
+         EPQ_fail = round((1-EPQ) * N)) -> comb_unite_binom
+
+comb_unite_binom %>%
+  filter(partition_level == "fam") -> uni_binom_fam
+comb_unite_binom %>%
+  filter(partition_level == "gen") -> uni_binom_gen
+
+# glm_letters <- function(df, ){
+#   m.glm <- glmer(cbind(EPQ_success, EPQ_fail) ~ region + classifier + (1|k_iteration), df, family = "binomial")
+#   m.emm <- emmeans(m_f_E, ~ classifier | region)
+#   cld(m.emm, alpha = 0.01, Letters = LETTERS)
+# }
+
+uni_fam_EPQ.glm <- glmer(cbind(EPQ_success, EPQ_fail) ~ region + classifier + (1|k_iteration), uni_binom_fam, family = "binomial")
+uni_fam_EPQ.emm <- emmeans(uni_fam_EPQ.glm, ~ classifier | region)
+uni_fam_EPQ.cld <- cld(uni_fam_EPQ.emm, alpha = 0.01, Letters = LETTERS)%>%
+  mutate(Metric = "EPQ")
+
+uni_fam_sens.glm <- glmer(cbind(sens_success, sens_fail) ~ region + classifier + (1|k_iteration), uni_binom_fam, family = "binomial")
+uni_fam_sens.emm <- emmeans(uni_fam_sens.glm, ~ classifier | region)
+uni_fam_sens.cld <- cld(uni_fam_sens.emm, alpha = 0.01, Letters = LETTERS)%>%
+  mutate(Metric = "sens")
+
+uni_fam_MC.glm <- glmer(cbind(MC_success, MC_fail) ~ region + classifier + (1|k_iteration), uni_binom_fam, family = "binomial")
+uni_fam_MC.emm <- emmeans(uni_fam_MC.glm, ~ classifier | region)
+uni_fam_MC.cld <- cld(uni_fam_MC.emm, alpha = 0.01, Letters = LETTERS)%>%
+  mutate(Metric = "MC")
+
+uni_fam_OC.glm <- glmer(cbind(OC_success, OC_fail) ~ region + classifier + (1|k_iteration), uni_binom_fam, family = "binomial")
+uni_fam_OC.emm <- emmeans(uni_fam_OC.glm, ~ classifier | region)
+uni_fam_OC.cld <- cld(uni_fam_OC.emm, alpha = 0.01, Letters = LETTERS)%>%
+  mutate(Metric = "OC")
+
+rbind(uni_fam_EPQ.cld, uni_fam_MC.cld, uni_fam_OC.cld) %>%
+  mutate(group = str_replace_all(.group, " ", ""),
+         partition_level = "fam") %>%
+  tibble() -> uni_let_fam
+uni_let_fam
+
+uni_gen_EPQ.glm <- glmer(cbind(EPQ_success, EPQ_fail) ~ region + classifier + (1|k_iteration), uni_binom_gen, family = "binomial")
+uni_gen_EPQ.emm <- emmeans(uni_gen_EPQ.glm, ~ classifier | region)
+uni_gen_EPQ.cld <- cld(uni_gen_EPQ.emm, alpha = 0.01, Letters = LETTERS)%>%
+  mutate(Metric = "EPQ")
+
+uni_gen_sens.glm <- glmer(cbind(sens_success, sens_fail) ~ region + classifier + (1|k_iteration), uni_binom_gen, family = "binomial")
+uni_gen_sens.emm <- emmeans(uni_gen_sens.glm, ~ classifier | region)
+uni_gen_sens.cld <- cld(uni_gen_sens.emm, alpha = 0.01, Letters = LETTERS)%>%
+  mutate(Metric = "sens")
+
+uni_gen_MC.glm <- glmer(cbind(MC_success, MC_fail) ~ region + classifier + (1|k_iteration), uni_binom_gen, family = "binomial")
+uni_gen_MC.emm <- emmeans(uni_gen_MC.glm, ~ classifier | region)
+uni_gen_MC.cld <- cld(uni_gen_MC.emm, alpha = 0.01, Letters = LETTERS)%>%
+  mutate(Metric = "MC")
+
+uni_gen_OC.glm <- glmer(cbind(OC_success, OC_fail) ~ region + classifier + (1|k_iteration), uni_binom_gen, family = "binomial")
+uni_gen_OC.emm <- emmeans(uni_gen_OC.glm, ~ classifier | region)
+uni_gen_OC.cld <- cld(uni_gen_OC.emm, alpha = 0.01, Letters = LETTERS) %>%
+  mutate(Metric = "OC")
+
+rbind(uni_gen_EPQ.cld, uni_gen_MC.cld, uni_gen_OC.cld) %>%
+  mutate(group = str_replace_all(.group, " ", ""),
+         partition_level = "gen") %>%
+  tibble()  -> uni_let_gen
+uni_let_gen
+
+rbind(uni_let_gen, uni_let_fam) %>%
+  mutate(database = "unite") -> uni_let
+uni_let
+
+head(comb_silva_df)
+comb_silva_df %>%
+  mutate(sens_success = round(sensitivity * N_known),
+         sens_fail = round((1-sensitivity) * N_known),
+         MC_success = round(MC * N_known),
+         MC_fail = round((1-MC) * N_known),
+         OC_success = round(OC * N_novel),
+         OC_fail = round((1-OC) * N_novel),
+         EPQ_success = round(EPQ * N),
+         EPQ_fail = round((1-EPQ) * N)) -> comb_silva_binom
+
+comb_silva_binom %>%
+  filter(partition_level == "fam") -> sil_binom_fam
+comb_silva_binom %>%
+  filter(partition_level == "gen") -> sil_binom_gen
 
 
 
-bartlett.test(value ~ classifier, uni_OC)
-bartlett.test(value ~ classifier, uni_MC)
-bartlett.test(value ~ classifier, uni_sens)
+sil_fam_EPQ.glm <- glmer(cbind(EPQ_success, EPQ_fail) ~ region + classifier + (1|k_iteration), sil_binom_fam, family = "binomial")
+sil_fam_EPQ.emm <- emmeans(sil_fam_EPQ.glm, ~ classifier | region)
+sil_fam_EPQ.cld <- cld(sil_fam_EPQ.emm, alpha = 0.01, Letters = LETTERS)%>%
+  mutate(Metric = "EPQ")
 
+sil_fam_sens.glm <- glmer(cbind(sens_success, sens_fail) ~ region + classifier + (1|k_iteration), sil_binom_fam, family = "binomial")
+sil_fam_sens.emm <- emmeans(sil_fam_sens.glm, ~ classifier | region)
+sil_fam_sens.cld <- cld(sil_fam_sens.emm, alpha = 0.01, Letters = LETTERS)%>%
+  mutate(Metric = "sens")
 
+sil_fam_MC.glm <- glmer(cbind(MC_success, MC_fail) ~ region + classifier + (1|k_iteration), sil_binom_fam, family = "binomial")
+sil_fam_MC.emm <- emmeans(sil_fam_MC.glm, ~ classifier | region)
+sil_fam_MC.cld <- cld(sil_fam_MC.emm, alpha = 0.01, Letters = LETTERS)%>%
+  mutate(Metric = "MC")
 
-sil_reg_long %>%
-  filter(Metric == "EPQ") -> sil_EPQ
-sil_reg_long %>%
-  filter(Metric == "OC") -> sil_OC
-sil_reg_long %>%
-  filter(Metric == "MC") -> sil_MC
-sil_reg_long %>%
-  filter(Metric == "sensitivity") -> sil_sens
-bartlett.test(value ~ classifier, sil_EPQ)
-bartlett.test(value ~ classifier, sil_OC)
-bartlett.test(value ~ classifier, sil_MC)
-bartlett.test(value ~ classifier, sil_sens)
+sil_fam_OC.glm <- glmer(cbind(OC_success, OC_fail) ~ region + classifier + (1|k_iteration), sil_binom_fam, family = "binomial")
+sil_fam_OC.emm <- emmeans(sil_fam_OC.glm, ~ classifier | region)
+sil_fam_OC.cld <- cld(sil_fam_OC.emm, alpha = 0.01, Letters = LETTERS)%>%
+  mutate(Metric = "OC")
 
+rbind(sil_fam_EPQ.cld, sil_fam_MC.cld, sil_fam_OC.cld) %>%
+  mutate(group = str_replace_all(.group, " ", ""),
+         partition_level = "fam") %>%
+  tibble() -> sil_let_fam
+sil_let_fam
 
+sil_gen_EPQ.glm <- glmer(cbind(EPQ_success, EPQ_fail) ~ region + classifier + (1|k_iteration), sil_binom_gen, family = "binomial")
+sil_gen_EPQ.emm <- emmeans(sil_gen_EPQ.glm, ~ classifier | region)
+sil_gen_EPQ.cld <- cld(sil_gen_EPQ.emm, alpha = 0.01, Letters = LETTERS)%>%
+  mutate(Metric = "EPQ")
+
+sil_gen_sens.glm <- glmer(cbind(sens_success, sens_fail) ~ region + classifier + (1|k_iteration), sil_binom_gen, family = "binomial")
+sil_gen_sens.emm <- emmeans(sil_gen_sens.glm, ~ classifier | region)
+sil_gen_sens.cld <- cld(sil_gen_sens.emm, alpha = 0.01, Letters = LETTERS)%>%
+  mutate(Metric = "sens")
+
+sil_gen_MC.glm <- glmer(cbind(MC_success, MC_fail) ~ region + classifier + (1|k_iteration), sil_binom_gen, family = "binomial")
+sil_gen_MC.emm <- emmeans(sil_gen_MC.glm, ~ classifier | region)
+sil_gen_MC.cld <- cld(sil_gen_MC.emm, alpha = 0.01, Letters = LETTERS)%>%
+  mutate(Metric = "MC")
+
+sil_gen_OC.glm <- glmer(cbind(OC_success, OC_fail) ~ region + classifier + (1|k_iteration), sil_binom_gen, family = "binomial")
+sil_gen_OC.emm <- emmeans(sil_gen_OC.glm, ~ classifier | region)
+sil_gen_OC.cld <- cld(sil_gen_OC.emm, alpha = 0.01, Letters = LETTERS) %>%
+  mutate(Metric = "OC")
+
+rbind(sil_gen_EPQ.cld, sil_gen_MC.cld, sil_gen_OC.cld) %>%
+  mutate(group = str_replace_all(.group, " ", ""),
+         partition_level = "gen") %>%
+  tibble()  -> sil_let_gen
+sil_let_gen
+
+rbind(sil_let_gen, sil_let_fam) %>%
+  mutate(database = "silva") -> sil_let
 ### Speed tests
 # Training speed, 1 thread
 
@@ -190,9 +271,11 @@ g_t1 <- ggplot(sum_n_vary_t, aes(x = seq_count, y = mean_seq_per_time, color = a
                 width=200, linetype=1) +
   labs(x = "Sequence Count",
        y = "Sequences trained per second",
-       color = "Algorithm") +
+       color = "Algorithm",
+       title = "Training Speed") +
   scale_color_discrete(breaks=c("blast", "utax"), labels=c("BLAST", "UTAX")) +
-  theme(legend.position = "none")
+  theme(legend.position = "none",
+        plot.title = element_text(hjust = 0.5))
 g_t1
 
 # Classification speed, 1000, 2000, 4000 query set sizes
@@ -216,10 +299,12 @@ class_lp <- ggplot(sum_cl_df, aes(x = threads, y = mean_time, color = algorithm,
   labs(x = "Threads",
        y = "Sequences classified per second",
        color = "Algorithm",
-       linetype = "Query sequence\ncount") +
+       linetype = "Query sequence\ncount",
+       title = "Classification Speed") +
   geom_errorbar(aes(ymin=mean_time-sd_time, ymax=mean_time+sd_time), width=2, linetype=1) +
   scale_linetype_manual(values = c(1, 2, 3)) +
-  scale_color_discrete(breaks=c("blast", "utax"), labels=c("BLAST", "UTAX"))
+  scale_color_discrete(breaks=c("blast", "utax"), labels=c("BLAST", "UTAX")) +
+  theme(plot.title = element_text(hjust = 0.5))
 class_lp
 
 g <- g_t1 + class_lp #+ plot_layout(guides = "collect") + plot_annotation(tag_levels = 'A')
@@ -237,11 +322,22 @@ ggsave("../../figures/speed_and_region_classification_part_cv.png", comb_plot, w
 comb_reg_df <- rbind(uni_reg_long, sil_reg_long)
 
 comb_reg_df %>%
+  filter(Metric != "sensitivity") %>%
   group_by(database, partition_level, region, classifier, Metric) %>%
   summarise(mean=mean(value), sd = sd(value)) %>%
   mutate(tbl_entry = paste(round(mean*100, 1), round(sd*100, 1), sep = "±")) ->
   res_tbl
 res_tbl
+
+let_df <- rbind(uni_let, sil_let) %>%
+  dplyr::select(one_of(c("database", "classifier", "region", "partition_level", "Metric", "group")))
+let_df
+res_tbl %>%
+  left_join(let_df, by=c("database", "classifier", "region", "partition_level", "Metric")) %>%
+  dplyr::select(one_of(c("database", "classifier", "region", "partition_level", "Metric", "tbl_entry", "group"))) %>%
+  mutate(tbl_entry = paste(tbl_entry, " (", group, ")", sep = "")) -> res_tbl
+
+res_tbl$database <- fct_relevel(res_tbl$database, c("unite", "silva"))
 res_tbl$classifier <- fct_relevel(res_tbl$classifier, c("BLAST", "RDP", "SINTAX", "UTAX", "mothur-wang", "mothur-knn=3", "qiime2-Naive-Bayes", "CB", "CBC", "CU", "CUC"))
   
 res_tbl %>% dcast(partition_level + classifier ~ database + region + Metric,
@@ -249,7 +345,7 @@ res_tbl %>% dcast(partition_level + classifier ~ database + region + Metric,
 out_tbl$classifier <- fct_relevel(out_tbl$classifier, c("BLAST", "RDP", "SINTAX", "UTAX", "mothur-wang", "mothur-knn=3", "qiime2-Naive-Bayes", "CB", "CBC", "CU", "CUC"))
 out_tbl %>%
   arrange(partition_level, classifier) -> out_tbl
-out_tbl
+tibble(out_tbl)
 write.csv(out_tbl, "../../tables/region_partition_summary.csv")
 
 # Parameter optimization
