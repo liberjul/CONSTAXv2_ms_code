@@ -75,7 +75,7 @@ sil_reg_long %>%
   scale_color_viridis_d(end = 0.8) +
   labs(x=NULL, y="Metric Value", color = "Region", title = "Bacteria") -> p_sil
 p_sil
-ggsave("../../figures/region_classification_part_cv_silva.png", p_sil, width = 10, height = 8, units = "in", dpi = 400)
+ggsave("../../figures/region_classification_part_cv_silva.png", p_sil +labs(y="Classifier"), width = 10, height = 8, units = "in", dpi = 400)
 
 uni_reg_long %>%
   filter(Metric != "sensitivity") %>%
@@ -146,6 +146,7 @@ uni_gen_EPQ.glm <- glmer(cbind(EPQ_success, EPQ_fail) ~ region + classifier + (1
 uni_gen_EPQ.emm <- emmeans(uni_gen_EPQ.glm, ~ classifier | region)
 uni_gen_EPQ.cld <- cld(uni_gen_EPQ.emm, alpha = 0.01, Letters = LETTERS)%>%
   mutate(Metric = "EPQ")
+uni_gen_EPQ.cld
 
 uni_gen_sens.glm <- glmer(cbind(sens_success, sens_fail) ~ region + classifier + (1|k_iteration), uni_binom_gen, family = "binomial")
 uni_gen_sens.emm <- emmeans(uni_gen_sens.glm, ~ classifier | region)
@@ -455,7 +456,9 @@ comb_tax_sb %>%
   mutate(Rank = unlist(strsplit(Level, "_"))[c(F, T, F)],
          Classifier = unlist(strsplit(Level, "_"))[c(F, F, T)],
          Value = Value/dim(comb_tax_sb)[1]) %>%
-  mutate(Classifier = factor(Classifier, levels = c("BLAST", "RDP", "SINTAX", "Consensus"))) %>%
+  mutate(Classifier = recode(factor(Classifier,
+                                    levels = c("BLAST", "RDP", "SINTAX", "Consensus")),
+                             "Consensus" = "CONSTAX")) %>%
   ggplot(aes(x = Rank, y = Value, fill=Classifier)) +
   geom_bar(position="dodge", stat="identity") +
   labs(y = "Proportion of OTUs classified",
@@ -472,7 +475,9 @@ comb_tax_ub %>%
   mutate(Rank = unlist(strsplit(Level, "_"))[c(T, F)],
          Classifier = unlist(strsplit(Level, "_"))[c(F, T)],
          Value = Value/dim(comb_tax_ub)[1]) %>%
-  mutate(Classifier = factor(Classifier, levels = c("BLAST", "RDP", "SINTAX", "Consensus"))) %>%
+  mutate(Classifier = recode(factor(Classifier,
+                                    levels = c("BLAST", "RDP", "SINTAX", "Consensus")),
+                             "Consensus" = "CONSTAX")) %>%
   ggplot(aes(x = Rank, y = Value, fill=Classifier)) +
   geom_bar(position="dodge", stat="identity") +
   scale_x_discrete(limits=c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species")) +
