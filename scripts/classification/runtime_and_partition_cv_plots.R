@@ -58,7 +58,7 @@ comb_silva_df %>% # Extract metrics
                names_to = "Metric",
                values_to = "value") -> sil_reg_long
 
-metric.labs <- c("Errors per Query", "Misclassification", "Overclassification", "Sensitivity")
+metric.labs <- c("Errors per Query", "Misclassification", "Over-classification", "Sensitivity")
 names(metric.labs) <- c("EPQ", "MC", "OC", "sensitivity")
 lev.labs <- c("Family", "Genus")
 names(lev.labs) <- c("fam", "gen")
@@ -73,9 +73,10 @@ sil_reg_long %>%
         plot.title = element_text(hjust = 0.5)) +
   scale_x_discrete(limits=c("BLAST","RDP","SINTAX", "mothur-wang", "mothur-knn=3", "qiime2-Naive-Bayes", "CB", "CBC")) +
   scale_color_viridis_d(end = 0.8) +
-  labs(x=NULL, y="Metric Value", color = "Region", title = "Bacteria") -> p_sil
+  labs(x=NULL, y="Error Rate", color = "Region", title = "Bacteria") -> p_sil
 p_sil
 ggsave("../../figures/region_classification_part_cv_silva.png", p_sil +labs(y="Classifier"), width = 10, height = 8, units = "in", dpi = 400)
+ggsave("../../figures/region_classification_part_cv_silva.pdf", p_sil +labs(y="Classifier"), width = 10, height = 8, units = "in", dpi = 400)
 
 uni_reg_long %>%
   filter(Metric != "sensitivity") %>%
@@ -87,9 +88,10 @@ uni_reg_long %>%
         plot.title = element_text(hjust = 0.5)) +
   scale_x_discrete(limits=c("BLAST","RDP","SINTAX", "UTAX", "mothur-wang", "mothur-knn=3", "qiime2-Naive-Bayes", "CB", "CBC", "CU", "CUC")) +
   scale_color_viridis_d(end = 0.8) +
-  labs(x="Classifier", y="Metric Value", color = "Region", title = "Fungi") -> p_uni
+  labs(x="Classifier", y="Error Rate", color = "Region", title = "Fungi") -> p_uni
 p_uni
 ggsave("../../figures/region_classification_part_cv_unite.png", p_uni, width = 10, height = 8, units = "in", dpi = 400)
+ggsave("../../figures/region_classification_part_cv_unite.pdf", p_uni, width = 10, height = 8, units = "in", dpi = 400)
 
 p_sil / p_uni -> comb_plot
 ### Let's try some stats
@@ -311,6 +313,7 @@ class_lp
 g <- g_t1 + class_lp #+ plot_layout(guides = "collect") + plot_annotation(tag_levels = 'A')
 g
 ggsave("../../figures/train_class_time_lp.png", g, width = 6, height = 3, units="in", dpi = 400)
+ggsave("../../figures/train_class_time_lp.pdf", g, width = 6, height = 3, units="in", dpi = 400)
 
 (g_t1 + class_lp) / p_sil / p_uni + plot_annotation(tag_levels = 'A') -> comb_plot
 comb_plot
@@ -319,6 +322,10 @@ comb_plot
 ggsave("../../figures/region_classification_part_v_sil.png", p_sil + labs(x="Classifier"), width = 7, height = 4, units = "in", dpi = 400)
 ggsave("../../figures/region_classification_part_v_uni.png", p_uni, width = 7, height = 4, units = "in", dpi = 400)
 ggsave("../../figures/speed_and_region_classification_part_cv.png", comb_plot, width = 8.5, height = 12, units = "in", dpi = 400)
+ggsave("../../figures/region_classification_part_v_sil.pdf", p_sil + labs(x="Classifier"), width = 7, height = 4, units = "in", dpi = 400)
+ggsave("../../figures/region_classification_part_v_uni.pdf", p_uni, width = 7, height = 4, units = "in", dpi = 400)
+ggsave("../../figures/speed_and_region_classification_part_cv.pdf", comb_plot, width = 8.5, height = 12, units = "in", dpi = 400)
+ggsave("../../figures/Fig_1.pdf", comb_plot, width = 8.5, height = 12, units = "in", dpi = 400)
 
 comb_reg_df <- rbind(uni_reg_long, sil_reg_long)
 
@@ -360,7 +367,7 @@ unite_params %>%
                names_to = "Metric",
                values_to = "value") -> uni_param_long
 
-metric.labs <- c("Errors per Query", "Misclassification", "Overclassification", "Sensitivity")
+metric.labs <- c("Errors per Query", "Misclassification", "Over-classification", "Sensitivity")
 names(metric.labs) <- c("EPQ", "MC", "OC", "sensitivity")
 lev.labs <- c("Family", "Genus")
 names(lev.labs) <- c("fam", "gen")
@@ -380,6 +387,7 @@ ggplot(aes(x=max_hits, y=value)) +
   labs(x="Max Hits", y="Metric Value") -> p_uni_param_mh
 p_uni_param_mh
 ggsave("../../figures/unite_mh.png", p_uni_param_mh + labs(title="Fungi"), width = 10, height = 4, units = "in", dpi = 400)
+ggsave("../../figures/unite_mh.pdf", p_uni_param_mh + labs(title="Fungi"), width = 10, height = 4, units = "in", dpi = 400)
 
 uni_param_long %>%
   filter(max_hits%in%c(5, 20)) %>%
@@ -397,6 +405,8 @@ ggsave("../../figures/unite_cf.png", p_uni_param_cf + labs(title="Fungi"), width
 g <- (p_uni_param_mh + labs(tag = "A")) / (p_uni_param_cf + labs(tag = "B"))
 
 ggsave("../../figures/unite_param_comb.png", g, width = 10, height = 8, units = "in", dpi = 400)
+ggsave("../../figures/unite_param_comb.pdf", g, width = 10, height = 8, units = "in", dpi = 400)
+ggsave("../../figures/Fig_S1.pdf", g, width = 10, height = 8, units = "in", dpi = 400)
 
 ### SILVA parameter optimization
 silva_params <- read.csv("../../data/classification/silva/part_cv_metrics_silva_params.csv")
@@ -421,6 +431,7 @@ sil_param_long %>%
   labs(x="Max Hits", y="Metric Value") -> p_sil_param_mh
 p_sil_param_mh
 ggsave("../../figures/silva_mh.png", p_sil_param_mh + labs(title = "Bacteria"), width = 10, height = 4, units = "in", dpi = 400)
+ggsave("../../figures/silva_mh.pdf", p_sil_param_mh + labs(title = "Bacteria"), width = 10, height = 4, units = "in", dpi = 400)
 
 sil_param_long %>%
   filter(max_hits %in% c(5, 20)) %>%
@@ -439,6 +450,8 @@ ggsave("../../figures/silva_cf.png", p_sil_param_cf + labs(title = "Bacteria"), 
 g <- (p_sil_param_mh + labs(tag = "A")) / (p_sil_param_cf + labs(tag = "B"))
 
 ggsave("../../figures/silva_param_comb.png", g, width = 10, height = 8, units = "in", dpi = 400)
+ggsave("../../figures/silva_param_comb.pdf", g, width = 10, height = 8, units = "in", dpi = 400)
+ggsave("../../figures/Fig_S2.pdf", g, width = 10, height = 8, units = "in", dpi = 400)
 
 # Comparison of classification counts
 
@@ -489,3 +502,5 @@ unite_class_count_barplot
 g <- silva_class_count_barplot + unite_class_count_barplot + plot_layout(guides = "collect") + plot_annotation(tag_levels = 'A')
 g
 ggsave("../../figures/class_count_bps.png", g, units= "in", width = 8, height = 4)
+ggsave("../../figures/class_count_bps.pdf", g, units= "in", width = 8, height = 4)
+ggsave("../../figures/Fig_S3.pdf", g, units= "in", width = 8, height = 4)
