@@ -501,6 +501,6 @@ unite_class_count_barplot
 
 g <- silva_class_count_barplot + unite_class_count_barplot + plot_layout(guides = "collect") + plot_annotation(tag_levels = 'A')
 g
-ggsave("../../figures/class_count_bps.png", g, units= "in", width = 8, height = 4)
-ggsave("../../figures/class_count_bps.pdf", g, units= "in", width = 8, height = 4)
-ggsave("../../figures/Fig_S3.pdf", g, units= "in", width = 8, height = 4)
+ggsave("../../figures/class_count_bps.png", g, units= "in", width = 8, height = 4, dpi=400)
+ggsave("../../figures/class_count_bps.pdf", g, units= "in", width = 8, height = 4, dpi=400)
+ggsave("../../figures/Fig_S3.pdf", g, units= "in", width = 8, height = 4, dpi=400)
