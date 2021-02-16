@@ -1,5 +1,5 @@
 library(ggplot2)
-# library(ggpubr)
+library(ggpubr)
 library(tidyverse)
 library(patchwork)
 library(maditr)
@@ -277,6 +277,8 @@ g_t1 <- ggplot(sum_n_vary_t, aes(x = seq_count, y = mean_seq_per_time, color = a
        color = "Algorithm",
        title = "Training Speed") +
   scale_color_discrete(breaks=c("blast", "utax"), labels=c("BLAST", "UTAX")) +
+  theme_classic() +
+  grids(linetype = "dashed") +
   theme(legend.position = "none",
         plot.title = element_text(hjust = 0.5))
 g_t1
@@ -307,6 +309,8 @@ class_lp <- ggplot(sum_cl_df, aes(x = threads, y = mean_time, color = algorithm,
   geom_errorbar(aes(ymin=mean_time-sd_time, ymax=mean_time+sd_time), width=2, linetype=1) +
   scale_linetype_manual(values = c(1, 2, 3)) +
   scale_color_discrete(breaks=c("blast", "utax"), labels=c("BLAST", "UTAX")) +
+  theme_classic() +
+  grids(linetype = "dashed") +
   theme(plot.title = element_text(hjust = 0.5))
 class_lp
 
@@ -441,7 +445,6 @@ sil_param_long %>%
              labeller = labeller(Metric=metric.labs, partition_level=lev.labs)) +
   theme(axis.text.x.bottom = element_text(angle=45, vjust=1, hjust=1),
         plot.title = element_text(hjust = 0.5)) +
-
   labs(x="Confidence Threshold", y="Metric Value", color="Max Hits") -> p_sil_param_cf
 p_sil_param_cf
 ggsave("../../figures/silva_cf.png", p_sil_param_cf + labs(title = "Bacteria"), width = 10, height = 4, units = "in", dpi = 400)
@@ -474,6 +477,8 @@ comb_tax_sb %>%
                              "Consensus" = "CONSTAX")) %>%
   ggplot(aes(x = Rank, y = Value, fill=Classifier)) +
   geom_bar(position="dodge", stat="identity") +
+  theme_classic() +
+  grids(linetype = "dashed") +
   labs(y = "Proportion of OTUs classified",
        title = "16S - SILVA") -> silva_class_count_barplot
 silva_class_count_barplot
@@ -493,6 +498,8 @@ comb_tax_ub %>%
                              "Consensus" = "CONSTAX")) %>%
   ggplot(aes(x = Rank, y = Value, fill=Classifier)) +
   geom_bar(position="dodge", stat="identity") +
+  theme_classic() +
+  grids(linetype = "dashed") +
   scale_x_discrete(limits=c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species")) +
   theme(axis.text.x.bottom = element_text(angle=-45, vjust=0.5, hjust=0)) + # Adjust the column labels
   labs(y = "Proportion of OTUs classified",
