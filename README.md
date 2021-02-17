@@ -11,4 +11,4 @@ Note: The scripts will take a VERY long time to run (on the order of weeks). The
 
 ## Making plots and tables
 
-`./scripts/speed_tests/speed_plots.R` and `./scripts/classification/partion_cv_plots.R` can be used to recreate plots and tables.
+`./scripts/speed_tests/speed_plots.R`, `./scripts/classification/format_class_table.py`,  and `./scripts/classification/runtime_and_partion_cv_plots.R` can be used to recreate plots and tables.

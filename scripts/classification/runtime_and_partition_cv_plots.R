@@ -94,6 +94,8 @@ ggsave("../../figures/region_classification_part_cv_unite.png", p_uni, width = 1
 ggsave("../../figures/region_classification_part_cv_unite.pdf", p_uni, width = 10, height = 8, units = "in", dpi = 400)
 
 p_sil / p_uni -> comb_plot
+ggsave("../../figures/region_classification_part_cv_sil_unite.png", comb_plot, width = 10, height = 8, units = "in", dpi = 400)
+
 ### Let's try some stats
 
 head(comb_unite_df)
@@ -117,6 +119,35 @@ comb_unite_binom %>%
 #   m.emm <- emmeans(m_f_E, ~ classifier | region)
 #   cld(m.emm, alpha = 0.01, Letters = LETTERS)
 # }
+
+### All classifiers, without region
+uni_EPQ_all.glm <- glmer(cbind(EPQ_success, EPQ_fail) ~ classifier + (1|k_iteration) + (1|partition_level), comb_unite_binom, family = "binomial")
+uni_EPQ_all.emm <- emmeans(uni_EPQ_all.glm, ~ classifier)
+uni_EPQ_all.cld <- cld(uni_EPQ_all.emm, alpha = 0.01, Letters = LETTERS)%>%
+  mutate(Metric = "EPQ")
+uni_EPQ_all.glm
+uni_EPQ_all.emm
+uni_EPQ_all.cld
+confint(uni_EPQ_all.emm, type = "response")
+
+uni_MC_all.glm <- glmer(cbind(MC_success, MC_fail) ~ classifier + (1|k_iteration) + (1|partition_level), comb_unite_binom, family = "binomial")
+uni_MC_all.emm <- emmeans(uni_MC_all.glm, ~ classifier)
+uni_MC_all.cld <- cld(uni_MC_all.emm, alpha = 0.01, Letters = LETTERS)%>%
+  mutate(Metric = "MC")
+uni_MC_all.glm
+uni_MC_all.emm
+uni_MC_all.cld
+confint(uni_MC_all.emm, type = "response")
+
+uni_OC_all.glm <- glmer(cbind(OC_success, OC_fail) ~ classifier + (1|k_iteration) + (1|partition_level), comb_unite_binom, family = "binomial")
+uni_OC_all.emm <- emmeans(uni_OC_all.glm, ~ classifier)
+uni_OC_all.cld <- cld(uni_OC_all.emm, alpha = 0.01, Letters = LETTERS)%>%
+  mutate(Metric = "OC")
+uni_OC_all.glm
+uni_OC_all.emm
+uni_OC_all.cld
+confint(uni_OC_all.emm, type = "response")
+
 
 uni_fam_EPQ.glm <- glmer(cbind(EPQ_success, EPQ_fail) ~ region + classifier + (1|k_iteration), uni_binom_fam, family = "binomial")
 uni_fam_EPQ.emm <- emmeans(uni_fam_EPQ.glm, ~ classifier | region)
@@ -191,7 +222,34 @@ comb_silva_binom %>%
 comb_silva_binom %>%
   filter(partition_level == "gen") -> sil_binom_gen
 
+### SILVA combined stats
 
+sil_EPQ_all.glm <- glmer(cbind(EPQ_success, EPQ_fail) ~ classifier + (1|k_iteration) + (1|partition_level), comb_silva_binom, family = "binomial")
+sil_EPQ_all.emm <- emmeans(sil_EPQ_all.glm, ~ classifier)
+sil_EPQ_all.cld <- cld(sil_EPQ_all.emm, alpha = 0.01, Letters = LETTERS)%>%
+  mutate(Metric = "EPQ")
+sil_EPQ_all.glm
+sil_EPQ_all.emm
+sil_EPQ_all.cld
+confint(sil_EPQ_all.emm, type = "response")
+
+sil_MC_all.glm <- glmer(cbind(MC_success, MC_fail) ~ classifier + (1|k_iteration) + (1|partition_level), comb_silva_binom, family = "binomial")
+sil_MC_all.emm <- emmeans(sil_MC_all.glm, ~ classifier)
+sil_MC_all.cld <- cld(sil_MC_all.emm, alpha = 0.01, Letters = LETTERS)%>%
+  mutate(Metric = "MC")
+sil_MC_all.glm
+sil_MC_all.emm
+sil_MC_all.cld
+confint(sil_MC_all.emm, type = "response")
+
+sil_OC_all.glm <- glmer(cbind(OC_success, OC_fail) ~ classifier + (1|k_iteration) + (1|partition_level), comb_silva_binom, family = "binomial")
+sil_OC_all.emm <- emmeans(sil_OC_all.glm, ~ classifier)
+sil_OC_all.cld <- cld(sil_OC_all.emm, alpha = 0.01, Letters = LETTERS)%>%
+  mutate(Metric = "OC")
+sil_OC_all.glm
+sil_OC_all.emm
+sil_OC_all.cld
+confint(sil_OC_all.emm, type = "response")
 
 sil_fam_EPQ.glm <- glmer(cbind(EPQ_success, EPQ_fail) ~ region + classifier + (1|k_iteration), sil_binom_fam, family = "binomial")
 sil_fam_EPQ.emm <- emmeans(sil_fam_EPQ.glm, ~ classifier | region)
@@ -277,8 +335,8 @@ g_t1 <- ggplot(sum_n_vary_t, aes(x = seq_count, y = mean_seq_per_time, color = a
        color = "Algorithm",
        title = "Training Speed") +
   scale_color_discrete(breaks=c("blast", "utax"), labels=c("BLAST", "UTAX")) +
-  theme_classic() +
-  grids(linetype = "dashed") +
+  # theme_classic() +
+  # grids(linetype = "dashed") +
   theme(legend.position = "none",
         plot.title = element_text(hjust = 0.5))
 g_t1
@@ -309,8 +367,8 @@ class_lp <- ggplot(sum_cl_df, aes(x = threads, y = mean_time, color = algorithm,
   geom_errorbar(aes(ymin=mean_time-sd_time, ymax=mean_time+sd_time), width=2, linetype=1) +
   scale_linetype_manual(values = c(1, 2, 3)) +
   scale_color_discrete(breaks=c("blast", "utax"), labels=c("BLAST", "UTAX")) +
-  theme_classic() +
-  grids(linetype = "dashed") +
+  # theme_classic() +
+  # grids(linetype = "dashed") +
   theme(plot.title = element_text(hjust = 0.5))
 class_lp
 
