@@ -232,6 +232,37 @@ done
 python tax_to_df_qiime_silva.py -d $SILVA_DATA
 python tax_df_to_metrics_qiime_silva.py -d $SILVA_DATA
 
+### Run kraken2 for silva Bacteria
+
+git clone https://github.com/DerrickWood/kraken2
+cd kraken2
+./install_kraken2.sh ~/bin
+cd ..
+mkdir silva_test
+cd silva_test
+mkdir taxonomy library data
+curl https://www.arb-silva.de/fileadmin/silva_databases/release_138/Exports/taxonomy/tax_slv_ssu_138.txt.gz > ./data/tax_slv_ssu_138.txt.gz
+curl https://www.arb-silva.de/fileadmin/silva_databases/release_138/Exports/taxonomy/tax_slv_ssu_138.acc_taxid.gz > ./data/tax_slv_ssu_138.acc_taxid.gz
+gunzip ./data/*.gz
+../kraken2/scripts/build_silva_taxonomy.pl ./data/tax_slv_ssu_138.txt
+mv names.dmp nodes.dmp taxonomy/
+mv data/tax_slv_ssu_138.acc_taxid seqid2taxid.map
+cd ..
+
+for k in {0..4}
+do
+  for r in gen fam
+  do
+    sed -e '/^>/!y/U/T/' ../silva_parts/silva_partition_"$k"_ref_"$r".fasta > silva_test/library/silva.fna
+    kraken2-build --threads 24 --db silva_test --build
+    kraken2 --db silva_test/ --threads 24 --use-names $SILVA_DATA/silva_partition_"$k"_query_sub_1k_"$r".fasta > silva_kraken2_p"$k"_query_sub_1k_"$r".txt
+    kraken2 --db silva_test/ --threads 24 --use-names $SILVA_DATA/query_dbs/silva_partition_"$k"_query_"$r"_v4.fasta > silva_kraken2_p"$k"_query_"$r"_v4.txt
+    kraken2 --db silva_test/ --threads 24 --use-names $SILVA_DATA/query_dbs/silva_partition_"$k"_query_"$r"_v3-4.fasta  > silva_kraken2_p"$k"_query_"$r"_v3-4.txt
+  done
+done
+python parse_taxid_classifications_silva.py
+python tax_df_to_metrics_kraken2_silva.py -d $SILVA_DATA
+
 # Classification counts
 $CONSTAXPATH/constax.sh -c 0.8 -b -t \
   -i  $SILVA_DATA/16S_PE_KBS_500_otu.fasta \
@@ -448,6 +479,29 @@ done
 # Calculate metrics from qiime classifications
 python tax_to_df_qiime_unite.py -d $UNITE_DATA
 python tax_df_to_metrics_qiime_unite.py -d $UNITE_DATA
+# Kraken2 classification for UNITE fungi
+mkdir unite_test
+cd unite_test
+mkdir taxonomy library data
+python RDP_taxonomy_to_silva_style.py -d $UNITE_DATA/UNITE_Fungi_tf/
+../kraken2/scripts/build_silva_taxonomy.pl ./data/unite_tax.txt
+mv names.dmp nodes.dmp taxonomy/
+cd ..
+for k in {0..4}
+do
+  for r in gen fam
+  do
+    cp ../unite_parts/tf_p"$k"_"$r"/unite_partition_"$k"_ref_"$r"__RDP_trained.fasta unite_test/library/unite.fna
+    kraken2-build --threads 24 --db unite_test --build
+    kraken2 --db unite_test/ --threads 24 --use-names $UNITE_DATA/unite_partition_"$k"_query_"$r".fasta > unite_kraken2_p"$k"_query_"$r".txt
+    kraken2 --db unite_test/ --threads 24 --use-names $UNITE_DATA/unite_partition_"$k"_query_"$r"_itsx.ITS1.fasta > unite_kraken2_p"$k"_query_"$r"_its1.txt
+    kraken2 --db unite_test/ --threads 24 --use-names $UNITE_DATA/unite_partition_"$k"_query_"$r"_itsx.ITS2.fasta  > unite_kraken2_p"$k"_query_"$r"_its2.txt
+  done
+done
+
+python parse_taxid_classifications_unite.py
+python tax_df_to_metrics_kraken2_unite.py -d $UNITE_DATA
+
 # Classification counts
 $CONSTAXPATH/constax.sh -c 0.8 -b -t \
   -i  $UNITE_DATA/ITS1_R1_KBS_500_otu.fasta \

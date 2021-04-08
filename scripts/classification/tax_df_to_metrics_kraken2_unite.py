@@ -67,7 +67,7 @@ args = parser.parse_args()
 
 level_dict = {"fam" : 5, "gen" : 6}
 buffer = "database,partition_level,region,k_iteration,classifier,sensitivity,MC,OC,EPQ,N_known,N_novel,N\n"
-region_dict = {"Full" : ["", ""], "ITS1" : ["_its1", "_itsx.ITS1"], "ITS2" : ["_its2", "_itsx.ITS2"]}
+region_dict = {"Full" : ["_full", ""], "ITS1" : ["_its1", "_itsx.ITS1"], "ITS2" : ["_its2", "_itsx.ITS2"]}
 for k in range(5):
     for r in ["gen", "fam"]:
         for region in region_dict.keys():
@@ -84,7 +84,7 @@ for k in range(5):
                     name = line.split("\t")[0]
                     name_dict[name] = None
                     line = ifile.readline()
-            with open(F"uni_parts_{k}_{r}_qiime_query{region_dict[region][1]}_taxonomy_comb.txt", "r") as ifile:
+            with open(F"uni_parts_{k}_{r}_kraken2_query{region_dict[region][0]}_taxonomy_comb.txt", "r") as ifile:
                 with open("filtered_tax.txt", "w") as ofile:
                     line = ifile.readline()
                     ofile.write(line)
@@ -104,6 +104,6 @@ for k in range(5):
             known_df = pd.read_table(F"{args.dir}/query_dbs/unite_partition_{k}_query_{r}{region_dict[region][1]}__RDP_taxonomy.txt")
             metrics = score_df(cons, known_df, level_known=level_dict[r])
             metrics = [str(x) for x in metrics]
-            buffer = F"{buffer}unite,{r},{region},{k},qiime2-Naive-Bayes,{','.join(metrics)}\n"
-with open("part_cv_metrics_unite_qiime.csv", "w") as ofile:
+            buffer = F"{buffer}unite,{r},{region},{k},kraken2,{','.join(metrics)}\n"
+with open("part_cv_metrics_unite_kraken2.csv", "w") as ofile:
     ofile.write(buffer)

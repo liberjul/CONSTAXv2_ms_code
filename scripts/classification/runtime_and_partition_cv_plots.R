@@ -14,6 +14,7 @@ sil_reg <- read.csv("../../data/classification/silva/part_cv_metrics_silva_reg.c
 sil_reg_c <- read.csv("../../data/classification/silva/part_cv_metrics_silva_reg_conservative.csv")
 sil_mothur <- read.csv("../../data/classification/silva/part_cv_metrics_silva_mothur.csv")
 sil_qiime <- read.csv("../../data/classification/silva/part_cv_metrics_silva_qiime.csv")
+sil_krak <- read.csv("../../data/classification/silva/part_cv_metrics_silva_kraken2.csv")
 
 uni_reg_utax <- read.csv("../../data/classification/unite/part_cv_metrics_unite_reg_utax.csv")
 uni_reg_utax_c <- read.csv("../../data/classification/unite/part_cv_metrics_unite_reg_utax_conservative.csv")
@@ -22,19 +23,23 @@ uni_reg_blast_c <- read.csv("../../data/classification/unite/part_cv_metrics_uni
 
 uni_mothur <- read.csv("../../data/classification/unite/part_cv_metrics_unite_mothur.csv")
 uni_qiime <- read.csv("../../data/classification/unite/part_cv_metrics_unite_qiime.csv")
+uni_krak <- read.csv("../../data/classification/unite/part_cv_metrics_unite_kraken2.csv")
+uni_spin <- read.csv("../../data/classification/unite/part_cv_metrics_unite_spingo.csv") %>%
+  filter(confidence_threshold == 0.2) %>%
+  dplyr::select(!confidence_threshold)
 
 levels(sil_reg$classifier)[levels(sil_reg$classifier)=="Consensus"] <- "CB"
 levels(sil_reg_c$classifier)[levels(sil_reg_c$classifier)=="Consensus"] <- "CBC"
 levels(sil_mothur$classifier)[levels(sil_mothur$classifier)=="mothur-knn"] <- "mothur-knn=3"
+levels(sil_krak$classifier)[levels(sil_krak$classifier)=="kraken2"] <- "Kraken2"
 
 levels(uni_reg_utax$classifier)[levels(uni_reg_utax$classifier)=="Consensus"] <- "CU"
 levels(uni_reg_blast$classifier)[levels(uni_reg_blast$classifier)=="Consensus"] <- "CB"
 levels(uni_reg_utax_c$classifier)[levels(uni_reg_utax_c$classifier)=="Consensus"] <- "CUC"
 levels(uni_reg_blast_c$classifier)[levels(uni_reg_blast_c$classifier)=="Consensus"] <- "CBC"
 levels(uni_mothur$classifier)[levels(uni_mothur$classifier)=="mothur-knn"] <- "mothur-knn=3"
-
-# colnames(uni_mothur)
-# colnames(uni_reg_blast)
+levels(uni_spin$classifier)[levels(uni_spin$classifier)=="spingo"] <- "SPINGO"
+levels(uni_krak$classifier)[levels(uni_krak$classifier)=="kraken2"] <- "Kraken2"
 
 # Extract unique classifiers not in the uni_reg_blast dataframe
 uni_reg_utax %>%
@@ -43,7 +48,7 @@ uni_reg_utax_c %>%
   filter(classifier == "CUC") -> uruc_fil
 uni_reg_blast_c %>%
   filter(classifier == "CBC") %>%
-  rbind(., uru_fil, uruc_fil, uni_reg_blast, uni_mothur, uni_qiime) -> comb_unite_df
+  rbind(., uru_fil, uruc_fil, uni_reg_blast, uni_mothur, uni_qiime, uni_krak, uni_spin) -> comb_unite_df
 
 comb_unite_df %>% # Extract metrics
   pivot_longer(cols = sensitivity:EPQ,
@@ -51,7 +56,7 @@ comb_unite_df %>% # Extract metrics
              values_to = "value") -> uni_reg_long
 sil_reg_c %>% # Only difference here is the Consensus Blast Classifier
   filter(classifier == "CBC") %>%
-  rbind(., sil_reg, sil_mothur, sil_qiime) -> comb_silva_df
+  rbind(., sil_reg, sil_mothur, sil_qiime, sil_krak) -> comb_silva_df
 
 comb_silva_df %>% # Extract metrics
   pivot_longer(cols = sensitivity:EPQ,
@@ -71,7 +76,7 @@ sil_reg_long %>%
              labeller = labeller(Metric=metric.labs, partition_level=lev.labs)) +
   theme(axis.text.x.bottom = element_text(angle=45, vjust=1, hjust=1),
         plot.title = element_text(hjust = 0.5)) +
-  scale_x_discrete(limits=c("BLAST","RDP","SINTAX", "mothur-wang", "mothur-knn=3", "qiime2-Naive-Bayes", "CB", "CBC")) +
+  scale_x_discrete(limits=c("BLAST","RDP","SINTAX", "mothur-wang", "mothur-knn=3", "qiime2-Naive-Bayes", "Kraken2", "CB", "CBC")) +
   scale_color_viridis_d(end = 0.8) +
   labs(x=NULL, y="Error Rate", color = "Region", title = "Bacteria") -> p_sil
 p_sil
@@ -84,9 +89,10 @@ uni_reg_long %>%
   geom_point(position = position_dodge(width=0.6), alpha = 0.5) +
   facet_grid(partition_level~Metric,
              labeller = labeller(Metric=metric.labs, partition_level=lev.labs)) +
-  theme(axis.text.x.bottom = element_text(angle=45, vjust=1, hjust=1),
+  theme(axis.text.x.bottom = element_text(angle=45, vjust=1, hjust=1, size = 7),
         plot.title = element_text(hjust = 0.5)) +
-  scale_x_discrete(limits=c("BLAST","RDP","SINTAX", "UTAX", "mothur-wang", "mothur-knn=3", "qiime2-Naive-Bayes", "CB", "CBC", "CU", "CUC")) +
+  scale_x_discrete(limits=c("BLAST","RDP","SINTAX", "UTAX", "mothur-wang", "mothur-knn=3", "qiime2-Naive-Bayes", "Kraken2", "SPINGO",
+                            "CB", "CBC", "CU", "CUC")) +
   scale_color_viridis_d(end = 0.8) +
   labs(x="Classifier", y="Error Rate", color = "Region", title = "Fungi") -> p_uni
 p_uni
@@ -388,6 +394,7 @@ ggsave("../../figures/region_classification_part_v_sil.pdf", p_sil + labs(x="Cla
 ggsave("../../figures/region_classification_part_v_uni.pdf", p_uni, width = 7, height = 4, units = "in", dpi = 400)
 ggsave("../../figures/speed_and_region_classification_part_cv.pdf", comb_plot, width = 8.5, height = 12, units = "in", dpi = 400)
 ggsave("../../figures/Fig_1.pdf", comb_plot, width = 8.5, height = 12, units = "in", dpi = 400)
+ggsave("../../figures/Fig_1.png", comb_plot, width = 8.5, height = 12, units = "in", dpi = 400)
 
 comb_reg_df <- rbind(uni_reg_long, sil_reg_long)
 
@@ -408,11 +415,13 @@ res_tbl %>%
   mutate(tbl_entry = paste(tbl_entry, " (", group, ")", sep = "")) -> res_tbl
 
 res_tbl$database <- fct_relevel(res_tbl$database, c("unite", "silva"))
-res_tbl$classifier <- fct_relevel(res_tbl$classifier, c("BLAST", "RDP", "SINTAX", "UTAX", "mothur-wang", "mothur-knn=3", "qiime2-Naive-Bayes", "CB", "CBC", "CU", "CUC"))
+res_tbl$classifier <- fct_relevel(res_tbl$classifier, c("BLAST", "RDP", "SINTAX", "UTAX", "mothur-wang", "mothur-knn=3",
+                                                        "qiime2-Naive-Bayes", "Kraken2", "SPINGO", "CB", "CBC", "CU", "CUC"))
   
 res_tbl %>% dcast(partition_level + classifier ~ database + region + Metric,
                   value.var = "tbl_entry") -> out_tbl
-out_tbl$classifier <- fct_relevel(out_tbl$classifier, c("BLAST", "RDP", "SINTAX", "UTAX", "mothur-wang", "mothur-knn=3", "qiime2-Naive-Bayes", "CB", "CBC", "CU", "CUC"))
+out_tbl$classifier <- fct_relevel(out_tbl$classifier, c("BLAST", "RDP", "SINTAX", "UTAX", "mothur-wang", "mothur-knn=3",
+                                                        "qiime2-Naive-Bayes", "Kraken2", "SPINGO", "CB", "CBC", "CU", "CUC"))
 out_tbl %>%
   arrange(partition_level, classifier) -> out_tbl
 tibble(out_tbl)
@@ -469,6 +478,7 @@ g <- (p_uni_param_mh + labs(tag = "A")) / (p_uni_param_cf + labs(tag = "B"))
 ggsave("../../figures/unite_param_comb.png", g, width = 10, height = 8, units = "in", dpi = 400)
 ggsave("../../figures/unite_param_comb.pdf", g, width = 10, height = 8, units = "in", dpi = 400)
 ggsave("../../figures/Fig_S1.pdf", g, width = 10, height = 8, units = "in", dpi = 400)
+ggsave("../../figures/Fig_S1.png", g, width = 10, height = 8, units = "in", dpi = 400)
 
 ### SILVA parameter optimization
 silva_params <- read.csv("../../data/classification/silva/part_cv_metrics_silva_params.csv")
@@ -513,6 +523,7 @@ g <- (p_sil_param_mh + labs(tag = "A")) / (p_sil_param_cf + labs(tag = "B"))
 ggsave("../../figures/silva_param_comb.png", g, width = 10, height = 8, units = "in", dpi = 400)
 ggsave("../../figures/silva_param_comb.pdf", g, width = 10, height = 8, units = "in", dpi = 400)
 ggsave("../../figures/Fig_S2.pdf", g, width = 10, height = 8, units = "in", dpi = 400)
+ggsave("../../figures/Fig_S2.png", g, width = 10, height = 8, units = "in", dpi = 400)
 
 # Comparison of classification counts
 
@@ -569,3 +580,5 @@ g
 ggsave("../../figures/class_count_bps.png", g, units= "in", width = 8, height = 4, dpi=400)
 ggsave("../../figures/class_count_bps.pdf", g, units= "in", width = 8, height = 4, dpi=400)
 ggsave("../../figures/Fig_S3.pdf", g, units= "in", width = 8, height = 4, dpi=400)
+ggsave("../../figures/Fig_S3.png", g, units= "in", width = 8, height = 4, dpi=400)
+

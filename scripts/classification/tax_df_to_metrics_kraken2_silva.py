@@ -67,24 +67,24 @@ args = parser.parse_args()
 
 level_dict = {"fam" : 5, "gen" : 6}
 buffer = "database,partition_level,region,k_iteration,classifier,sensitivity,MC,OC,EPQ,N_known,N_novel,N\n"
-region_dict = {"Full" : ["", ""], "ITS1" : ["_its1", "_itsx.ITS1"], "ITS2" : ["_its2", "_itsx.ITS2"]}
+region_dict = {"Full" : "_full" , "V3-4" : "_v3-4", "V4" : "_v4"}
 for k in range(5):
     for r in ["gen", "fam"]:
         for region in region_dict.keys():
             print(k, r, region)
-            # comb_tax = pd.read_table(F"uni_parts_{k}_{r}_qiime_query{region_dict[region][1]}_taxonomy_comb.txt")
-            # cons = comb_tax.iloc[:,1:]
-            # cons = cons.fillna("-")
-
             name_dict = {}
-            with open(F"{args.dir}/query_dbs/unite_partition_{k}_query_{r}{region_dict[region][1]}__RDP_taxonomy.txt", "r") as ifile:
+            if region == "Full":
+                filename_known = F"{args.dir}/query_dbs/silva_partition_{k}_query_sub_1k_{r}__RDP_taxonomy.txt"
+            else:
+                filename_known = F"{args.dir}/query_dbs/silva_partition_{k}_query_{r}{region_dict[region]}__RDP_taxonomy.txt"
+            with open(filename_known, "r") as ifile:
                 line = ifile.readline()
                 line = ifile.readline()
                 while line != "":
                     name = line.split("\t")[0]
                     name_dict[name] = None
                     line = ifile.readline()
-            with open(F"uni_parts_{k}_{r}_qiime_query{region_dict[region][1]}_taxonomy_comb.txt", "r") as ifile:
+            with open(F"sil_parts_{k}_{r}_kraken2_query{region_dict[region]}_taxonomy_comb.txt", "r") as ifile:
                 with open("filtered_tax.txt", "w") as ofile:
                     line = ifile.readline()
                     ofile.write(line)
@@ -101,9 +101,9 @@ for k in range(5):
             cons = cons.fillna("-")
 
             # known_df = pd.read_table("filtered_tax.txt")
-            known_df = pd.read_table(F"{args.dir}/query_dbs/unite_partition_{k}_query_{r}{region_dict[region][1]}__RDP_taxonomy.txt")
+            known_df = pd.read_table(filename_known)
             metrics = score_df(cons, known_df, level_known=level_dict[r])
             metrics = [str(x) for x in metrics]
-            buffer = F"{buffer}unite,{r},{region},{k},qiime2-Naive-Bayes,{','.join(metrics)}\n"
-with open("part_cv_metrics_unite_qiime.csv", "w") as ofile:
+            buffer = F"{buffer}silva,{r},{region},{k},kraken2,{','.join(metrics)}\n"
+with open("part_cv_metrics_silva_kraken2.csv", "w") as ofile:
     ofile.write(buffer)
